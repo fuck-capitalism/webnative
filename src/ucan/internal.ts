@@ -1,13 +1,12 @@
-import localforage from 'localforage'
-
 import * as common from '../common'
 import * as pathUtil from '../fs/path'
 import * as permissions from './permissions'
+import * as storage from '../storage'
+
 import * as ucan from '../ucan'
 import { UCANS_STORAGE_KEY } from '../common'
 import { Permissions, fileSystemPaths } from './permissions'
 import { Ucan, WNFS_PREFIX } from '../ucan'
-import { setup } from '../setup/internal'
 
 
 let dictionary: Record<string, Ucan> = {}
@@ -21,7 +20,7 @@ let dictionary: Record<string, Ucan> = {}
  */
 export async function clearStorage(): Promise<void> {
   dictionary = {}
-  await localforage.removeItem(UCANS_STORAGE_KEY)
+  await storage.removeItem(UCANS_STORAGE_KEY)
 }
 
 /**
@@ -75,7 +74,7 @@ export async function lookupFilesystemUcan(path: string): Promise<Ucan | null> {
  * Store UCANs and update the in-memory dictionary.
  */
 export async function store(ucans: Array<string>): Promise<void> {
-  const existing = await localforage.getItem(UCANS_STORAGE_KEY) as Array<string>
+  const existing = await storage.getItem(UCANS_STORAGE_KEY) as Array<string>
   const newList = (existing || []).concat(ucans)
 
   dictionary = ucan.compileDictionary(newList)
@@ -83,7 +82,7 @@ export async function store(ucans: Array<string>): Promise<void> {
   const filteredList = listFromDictionary()
   const encodedList = filteredList.map(ucan.encode)
 
-  await localforage.setItem(UCANS_STORAGE_KEY, encodedList)
+  await storage.setItem(UCANS_STORAGE_KEY, encodedList)
 }
 
 /**

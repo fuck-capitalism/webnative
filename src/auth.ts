@@ -1,9 +1,8 @@
-import localforage from 'localforage'
-
 import * as cidLog from './common/cid-log'
 import * as common from './common'
 import * as did from './did'
-import * as keystore from './keystore'
+import * as crypto from './crypto'
+import * as storage from './storage'
 import * as ucan from './ucan/internal'
 import { USERNAME_STORAGE_KEY, Maybe, VERSION } from './common'
 import { FileSystem } from './fs/filesystem'
@@ -27,10 +26,10 @@ export async function authenticatedUsername(): Promise<string | null> {
  * Removes any trace of the user and redirects to the lobby.
  */
 export async function leave({ withoutRedirect }: { withoutRedirect?: boolean } = {}): Promise<void> {
-  await localforage.removeItem(USERNAME_STORAGE_KEY)
+  await storage.removeItem(USERNAME_STORAGE_KEY)
   await ucan.clearStorage()
   await cidLog.clear()
-  await keystore.clear()
+  await crypto.keystore.clear()
 
   ;((globalThis as any).filesystems || []).forEach((f: FileSystem) => f.deactivate())
 

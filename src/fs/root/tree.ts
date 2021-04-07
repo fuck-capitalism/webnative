@@ -1,20 +1,18 @@
-import localforage from 'localforage'
-
 import { BareNameFilter } from '../protocol/private/namefilter'
 import { Branch, Links, Puttable, SimpleLink } from '../types'
 import { AddResult, CID } from '../../ipfs'
 import { Maybe } from '../../common'
 import { Permissions } from '../../ucan/permissions'
 import { SemVer } from '../semver'
-import { sha256Str } from '../../keystore'
 
+import * as crypto from '../../crypto'
 import * as identifiers from '../../common/identifiers'
 import * as ipfs from '../../ipfs'
-import * as keystore from '../../keystore'
 import * as link from '../link'
 import * as pathUtil from '../path'
 import * as protocol from '../protocol'
 import * as semver from '../semver'
+import * as storage from '../../storage'
 import * as ucanPermissions from '../../ucan/permissions'
 
 import BareTree from '../bare/tree'
@@ -174,8 +172,7 @@ export default class RootTree implements Puttable {
 
   static async storeRootKey(rootKey: string): Promise<void> {
     const rootKeyId = await identifiers.readKey({ path: '/private/' })
-    const ks = await keystore.get()
-    await ks.importSymmKey(rootKey, rootKeyId)
+    await crypto.keystore.importSymmKey(rootKey, rootKeyId)
   }
 
   findPrivateTree(path: string[]): [string, PrivateTree | null] {
@@ -210,7 +207,7 @@ export default class RootTree implements Puttable {
     }
 
     // add to chunk
-    const hashedCid = await sha256Str(cid)
+    const hashedCid = await crypto.hash.sha256Str(cid)
     const updatedChunk = [...lastChunk, hashedCid]
     const updatedChunkDeposit = await protocol.basic.putFile(
       updatedChunk.join(",")
@@ -258,7 +255,7 @@ async function findBareNameFilter(
 ): Promise<Maybe<BareNameFilter>> {
   const privatePath = privatePathWithLeadingSlash.slice(1)
   const bareNameFilterId = await identifiers.bareNameFilter({ path: "/private/" + privatePath })
-  const bareNameFilter: Maybe<BareNameFilter> = await localforage.getItem(bareNameFilterId)
+  const bareNameFilter: Maybe<BareNameFilter> = await storage.getItem(bareNameFilterId)
   if (bareNameFilter) return bareNameFilter
 
   const pathParts = pathUtil.splitParts(privatePath)
@@ -316,7 +313,7 @@ async function permissionKeys(
   return ucanPermissions.paths(permissions).reduce(async (acc, p) => {
     if (p.startsWith('/public')) return acc
     const name = await identifiers.readKey({ path: p })
-    return acc.then(async map => ({ ...map, [p]: (await keystore.getKeyByName(name)) }))
+    return acc.then(async map => ({ ...map, [p]: (await crypto.keystore.exportSymmKey(name)) }))
   }, Promise.resolve({}))
 }
 

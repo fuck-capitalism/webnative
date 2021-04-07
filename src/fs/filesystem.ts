@@ -11,13 +11,11 @@ import PrivateTree from './v1/PrivateTree'
 import * as cidLog from '../common/cid-log'
 import * as dataRoot from '../data-root'
 import * as debug from '../common/debug'
-import * as identifiers from '../common/identifiers'
-import * as keystore from '../keystore'
+import * as crypto from '../crypto'
 import * as pathUtil from './path'
 import * as ucan from '../ucan'
 import * as ucanInternal from '../ucan/internal'
 
-import { Maybe } from '../common'
 import { CID, FileContent } from '../ipfs'
 import { NoPermissionError } from '../errors'
 import { Permissions } from '../ucan/permissions'
@@ -132,7 +130,7 @@ export class FileSystem {
    */
   static async empty(opts: NewFileSystemOptions = {}): Promise<FileSystem> {
     const { permissions, localOnly } = opts
-    const rootKey = opts.rootKey || await keystore.genKeyStr()
+    const rootKey = opts.rootKey || await crypto.aes.genKeyStr()
     const root = await RootTree.empty({ rootKey })
 
     const fs = new FileSystem({
