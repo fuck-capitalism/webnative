@@ -38,11 +38,12 @@ export const DEFAULT_IMPLEMENTATION: Dependencies = {
 
 export let impl: Dependencies = DEFAULT_IMPLEMENTATION
 
-export const setDependencies = (fns: Partial<Dependencies>): void => {
+export const setDependencies = (fns: Partial<Dependencies>): Dependencies => {
   impl = {
     ...impl,
     ...fns,
   }
+  return impl
 }
 
 
