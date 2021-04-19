@@ -1,5 +1,5 @@
 import * as fc from 'fast-check';
-import { fromBuffer, toBuffer } from './hex'
+import { fromBytes, toBytes } from './hex'
 
 test('round trip to buffer and back out', () => {
   fc.assert(
@@ -13,11 +13,11 @@ test('round trip to buffer and back out', () => {
       }
 
       for (const hex of hexData) {
-        buffers.push(toBuffer(hex))
+        buffers.push(toBytes(hex))
       }
 
       for (const buffer of buffers) {
-        returnData.push(fromBuffer(buffer))
+        returnData.push(fromBytes(buffer))
       }
 
       expect(returnData).toEqual(hexData)
