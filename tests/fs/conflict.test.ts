@@ -52,19 +52,31 @@ async function writeFiles(fs: FileSystem, files: Files) {
 
 describe("conflict detection", () => {
   it("detects a conflict", async () => {
-    // const rootKey = "PUF+vTVbIQjxTJeFVu+qPQC7GiTA4sGC4M3Nqx1xRbc="
     const commonFs = await FileSystem.empty({ localOnly: true })
     await writeFiles(commonFs, setupFiles)
     const commonCID = await commonFs.root.put()
     const commonPublicCID = commonFs.root.publicTree.cid
-    
+
     const remoteFs = await FileSystem.fromCID(commonCID, { localOnly: true })
     await writeFiles(remoteFs, remoteFiles)
     const localFs = await FileSystem.fromCID(commonCID, { localOnly: true })
     await writeFiles(localFs, localFiles)
 
+    // Diverging case: Changes both locally & remotely
     const divPoint = await divergencePoint(localFs.root.publicTree, remoteFs.root.publicTree)
     expect(divPoint.common.cid).toEqual(commonPublicCID)
+
+    // Push case: Changes locally on top of what's in remote at the moment
+    const pushPoint = await divergencePoint(localFs.root.publicTree, commonFs.root.publicTree)
+    expect(pushPoint.common.cid).toEqual(commonPublicCID)
+    expect(pushPoint.futureRemote.length).toEqual(0)
+    expect(pushPoint.futureLocal.length).not.toEqual(0)
+
+    // Fast forward case: No changes locally, only remotely. Could fast forward.
+    const fastForwardPoint = await divergencePoint(commonFs.root.publicTree, remoteFs.root.publicTree)
+    expect(fastForwardPoint.common.cid).toEqual(commonPublicCID)
+    expect(fastForwardPoint.futureRemote.length).not.toEqual(0)
+    expect(fastForwardPoint.futureLocal.length).toEqual(0)
   })
 })
 
@@ -83,25 +95,25 @@ async function divergencePoint(local: PublicTree, remote: PublicTree): Promise<D
 
     const currentLocal = historyLocal[historyLocal.length - 1]
     const currentRemote = historyRemote[historyRemote.length - 1]
-    
+
     // See whether the current heads are CIDs that were already contained
     // the other history respectively
-    
+
     const currentLocalCID = currentLocal?.cid
-    const localCIDIndex = indexOfCID(currentLocalCID, historyRemote)
-    if (localCIDIndex != null) {
+    const remoteCIDIndex = indexOfCID(currentLocalCID, historyRemote)
+    if (remoteCIDIndex != null) {
       return {
         futureLocal: historyLocal.slice(0, historyLocal.length - 1),
-        futureRemote: historyRemote.slice(0, historyRemote.length - 1),
+        futureRemote: historyRemote.slice(0, remoteCIDIndex),
         common: currentLocal
       }
     }
 
     const currentRemoteCID = currentRemote?.cid
-    const remoteCIDIndex = indexOfCID(currentRemoteCID, historyLocal)
-    if (remoteCIDIndex != null) {
+    const localCIDIndex = indexOfCID(currentRemoteCID, historyLocal)
+    if (localCIDIndex != null) {
       return {
-        futureLocal: historyLocal.slice(0, historyLocal.length - 1),
+        futureLocal: historyLocal.slice(0, localCIDIndex),
         futureRemote: historyRemote.slice(0, historyRemote.length - 1),
         common: currentRemote
       }
