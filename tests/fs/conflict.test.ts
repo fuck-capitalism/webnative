@@ -82,13 +82,13 @@ async function divergencePoint(local: PublicTree, remote: PublicTree): Promise<s
     // the other history respectively
     
     const currentLocalCID = currentLocal?.cid
-    const localCIDIndex = await indexOfCID(currentLocalCID, historyRemote)
+    const localCIDIndex = indexOfCID(currentLocalCID, historyRemote)
     if (localCIDIndex != null) {
       return currentLocalCID
     }
 
     const currentRemoteCID = currentRemote?.cid
-    const remoteCIDIndex = await indexOfCID(currentRemoteCID, historyLocal)
+    const remoteCIDIndex = indexOfCID(currentRemoteCID, historyLocal)
     if (remoteCIDIndex != null) {
       return currentRemoteCID
     }
@@ -109,7 +109,7 @@ async function divergencePoint(local: PublicTree, remote: PublicTree): Promise<s
   }
 }
 
-async function indexOfCID(cid: string, history: PublicTree[]): Promise<number | null> {
+function indexOfCID(cid: string, history: PublicTree[]): number | null {
   let index = 0
   for (const item of history) {
     const itemCID = item?.cid
@@ -119,12 +119,4 @@ async function indexOfCID(cid: string, history: PublicTree[]): Promise<number | 
     index++
   }
   return null
-}
-
-async function getHistory(tree: PublicTree): Promise<PublicTree[]> {
-  const history = [tree]
-  while (history[history.length - 1].header.previous) {
-    history.push(await PublicTree.fromCID(history[history.length - 1].header.previous))
-  }
-  return history
 }
