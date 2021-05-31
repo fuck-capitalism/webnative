@@ -63,12 +63,18 @@ describe("conflict detection", () => {
     const localFs = await FileSystem.fromCID(commonCID, { localOnly: true })
     await writeFiles(localFs, localFiles)
 
-    const divergenceCID = await divergencePoint(localFs.root.publicTree, remoteFs.root.publicTree)
-    expect(divergenceCID).toEqual(commonPublicCID)
+    const divPoint = await divergencePoint(localFs.root.publicTree, remoteFs.root.publicTree)
+    expect(divPoint.common.cid).toEqual(commonPublicCID)
   })
 })
 
-async function divergencePoint(local: PublicTree, remote: PublicTree): Promise<string | null> {
+interface DivergencePoint {
+  futureLocal: PublicTree[]
+  futureRemote: PublicTree[]
+  common: PublicTree
+}
+
+async function divergencePoint(local: PublicTree, remote: PublicTree): Promise<DivergencePoint | null> {
   const historyLocal = [local]
   const historyRemote = [remote]
 
@@ -84,13 +90,21 @@ async function divergencePoint(local: PublicTree, remote: PublicTree): Promise<s
     const currentLocalCID = currentLocal?.cid
     const localCIDIndex = indexOfCID(currentLocalCID, historyRemote)
     if (localCIDIndex != null) {
-      return currentLocalCID
+      return {
+        futureLocal: historyLocal.slice(0, historyLocal.length - 1),
+        futureRemote: historyRemote.slice(0, historyRemote.length - 1),
+        common: currentLocal
+      }
     }
 
     const currentRemoteCID = currentRemote?.cid
     const remoteCIDIndex = indexOfCID(currentRemoteCID, historyLocal)
     if (remoteCIDIndex != null) {
-      return currentRemoteCID
+      return {
+        futureLocal: historyLocal.slice(0, historyLocal.length - 1),
+        futureRemote: historyRemote.slice(0, historyRemote.length - 1),
+        common: currentRemote
+      }
     }
 
     // Add the 'previous' history entries to historyLocal and historyRemote
